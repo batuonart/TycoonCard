@@ -68,12 +68,12 @@ public class DeckManager : MonoBehaviour
     {
         currentDeck = GenerateDeck();
         Shuffle(currentDeck);
-        GenerateNewHand();
+        MakeNewHand();
     }
 
     
 
-    void GenerateNewHand()
+    void MakeNewHand()
     {
         List<Card> newHand = currentDeck.GetRange(0, 13);
 
@@ -82,7 +82,7 @@ public class DeckManager : MonoBehaviour
         foreach (var card in newHand)
         {
             offSet++;
-            GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (offSet * 0.75f), handPivot.transform.position.y), Quaternion.identity);
+            GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (offSet * 1f), handPivot.transform.position.y), Quaternion.identity);
             newCard.GetComponent<CardData>().setCardSuit(card.CardSuit.ToString());
             newCard.GetComponent<CardData>().setCardRank(card.CardRank.ToString());
             newCard.GetComponentInChildren<SpriteRenderer>().sprite = card.CardArt;

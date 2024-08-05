@@ -9,6 +9,17 @@ public class CardData : MonoBehaviour
     [SerializeField]
     private string cardRank;
 
+    private bool isActive = true;
+
+    public void disableCard()
+    {
+        isActive = false;   
+    }
+
+    public bool cardIsActive()
+    {
+        return isActive;
+    }
 
     public void setCardSuit(string cardSuit)
     {
@@ -26,6 +37,8 @@ public class CardData : MonoBehaviour
     {
         return this.cardRank;
     }
+
+    
 
     public void printCardData()
     {

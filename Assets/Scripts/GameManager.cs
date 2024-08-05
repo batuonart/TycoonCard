@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using static DeckManager;
 
 public class GameManager : MonoBehaviour
 {
@@ -49,10 +50,14 @@ public class GameManager : MonoBehaviour
         {
             if (selectedCards.Count == 0)
             {
-                addToSelectedCards(newCard);
+                if (newCard.GetComponent<CardData>().getCardRank().ToString() != "Joker")
+                {
+                    addToSelectedCards(newCard);
+                }
             }
             else
             {
+
                 if (selectedCards[0].GetComponent<CardData>().getCardRank() == newCard.GetComponent<CardData>().getCardRank() ||
                     newCard.GetComponent<CardData>().getCardRank().ToString() == "Joker")
                 {
@@ -93,7 +98,7 @@ public class GameManager : MonoBehaviour
         foreach (GameObject selectedCard in selectedCards)
         {
             selectedCard.transform.DOMove(cardOriginPos, moveDuration).SetEase(Ease.InOutQuad);
-            selectedCard.GetComponent<Draggable>().disableHovering();
+            selectedCard.GetComponent<CardData>().disableCard();
         }
 
         selectedCards.Clear();

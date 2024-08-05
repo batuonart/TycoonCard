@@ -22,10 +22,14 @@ public class InputHandler : MonoBehaviour
         if (!rayHit.collider) return;
 
 
+
+
         GameObject hitCard = rayHit.collider.gameObject;
 
-        hitCard.GetComponent<CardData>().printCardData();
-        gameManager.checkNewCard(hitCard);
-
+        if (hitCard.GetComponent<CardData>().cardIsActive())
+        {
+            hitCard.GetComponent<CardData>().printCardData();
+            gameManager.checkNewCard(hitCard);
+        }
     }
 }
