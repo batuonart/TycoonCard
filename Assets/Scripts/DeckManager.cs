@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using static DeckManager;
 using static DeckManager.Card;
@@ -12,6 +13,7 @@ public class DeckManager : MonoBehaviour
 
     public GameObject cardPrefab;
     public Sprite[] cardFaces;
+    public Sprite jokerSprite;
   
     private static readonly System.Random rng = new System.Random();
     public class Card
@@ -25,8 +27,7 @@ public class DeckManager : MonoBehaviour
         }
         public enum Rank
         {
-            Two = 2,
-            Three,
+            Three = 3,
             Four,
             Five,
             Six,
@@ -34,10 +35,12 @@ public class DeckManager : MonoBehaviour
             Eight,
             Nine,
             Ten,
-            Ace,
             Jack,
             Queen,
-            King
+            King,
+            Ace,
+            Two,
+            Joker
             
         }
         public Suit CardSuit { get; private set; }
@@ -64,23 +67,27 @@ public class DeckManager : MonoBehaviour
     void Start()
     {
         currentDeck = GenerateDeck();
+        Shuffle(currentDeck);
         GenerateNewHand();
     }
+
+    
 
     void GenerateNewHand()
     {
         List<Card> newHand = currentDeck.GetRange(0, 13);
 
-        for (int i = 0; i < 13; i++)
+        newHand.Sort((card1, card2) => card1.CardRank.CompareTo(card2.CardRank));
+        float offSet = 0f;
+        foreach (var card in newHand)
         {
-            var card = newHand[i];
-            GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (i * 0.75f), handPivot.transform.position.y), Quaternion.identity);
+            offSet++;
+            GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (offSet * 0.75f), handPivot.transform.position.y), Quaternion.identity);
             newCard.GetComponent<CardData>().setCardSuit(card.CardSuit.ToString());
             newCard.GetComponent<CardData>().setCardRank(card.CardRank.ToString());
-            newCard.GetComponentInChildren<SpriteRenderer>().sprite = currentDeck[i].CardArt;
+            newCard.GetComponentInChildren<SpriteRenderer>().sprite = card.CardArt;
 
         }
-
     }
 
     List<Card> GenerateDeck()
@@ -92,11 +99,18 @@ public class DeckManager : MonoBehaviour
         {
             foreach (Suit suit in Enum.GetValues(typeof(Suit)))
             {
-                Debug.Log("Added" + suit.ToString() + " " + rank.ToString());
-                deck.Add(new Card(suit, rank, cardFaces[i]));
-                i++;
+                if (rank != Rank.Joker)
+                {
+                    Debug.Log("Added" + suit.ToString() + " " + rank.ToString());
+                    deck.Add(new Card(suit, rank, cardFaces[i]));
+                    i++;
+                }          
             }
         }
+
+        deck.Add(new Card(Suit.Diamonds, Rank.Joker, jokerSprite));
+        deck.Add(new Card(Suit.Diamonds, Rank.Joker, jokerSprite));
+
 
         return deck;
     }

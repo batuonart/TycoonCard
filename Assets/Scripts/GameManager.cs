@@ -39,21 +39,25 @@ public class GameManager : MonoBehaviour
     }
 
 
-    public void checkNewCard(GameObject gameObject)
+    public void checkNewCard(GameObject newCard)
     {
-        if(selectedCards.Contains(gameObject))
+        if(selectedCards.Contains(newCard))
         {
-            removeFromSelectedCards(gameObject);
+            removeFromSelectedCards(newCard);
         }
         else
         {
             if (selectedCards.Count == 0)
             {
-                addToSelectedCards(gameObject);
+                addToSelectedCards(newCard);
             }
             else
             {
-                if (selectedCards[0].GetComponent<CardData>().getCardRank() == gameObject.GetComponent<CardData>().getCardRank()) addToSelectedCards(gameObject);
+                if (selectedCards[0].GetComponent<CardData>().getCardRank() == newCard.GetComponent<CardData>().getCardRank() ||
+                    newCard.GetComponent<CardData>().getCardRank().ToString() == "Joker")
+                {
+                    addToSelectedCards(newCard);
+                }
             }
         }
     }
