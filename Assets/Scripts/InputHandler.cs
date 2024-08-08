@@ -3,15 +3,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Events;
 
 public class InputHandler : MonoBehaviour
 {
     public GameManager gameManager;
     private Camera cam;
 
+
     private void Awake()
     {
         cam = Camera.main;
+    }
+
+    public void OnPlayClick()
+    {
+
     }
 
     public void OnClick(InputAction.CallbackContext context)
@@ -28,7 +35,6 @@ public class InputHandler : MonoBehaviour
 
         if (hitCard.GetComponent<CardData>().cardIsActive())
         {
-            hitCard.GetComponent<CardData>().printCardData();
             gameManager.checkNewCard(hitCard);
         }
     }

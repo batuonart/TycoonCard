@@ -4,16 +4,23 @@ using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
 using static DeckManager.Card;
+using UnityEngine.Events;
+using System.Collections.Generic;
 
 
 public class TurnManager : MonoBehaviour
 {
-    int playerNo;
-    int currentTurn = 0;
+    int currentPlayerNo = 0;
+    int turnCount = 0;
     int turnPlayStyle = 0;
-    int currentCardRank = 0;
-
+    public int currentTopCard { get; private set; }
+    bool gameIsReversed = false;
+    
+    GameManager gameManager;
+    DeckManager deckManager;
+    
     public TextMeshProUGUI turnText;
+    public UnityEvent newTurnEvent;
 
     public class Player
     {
@@ -29,25 +36,85 @@ public class TurnManager : MonoBehaviour
             Score = 0;
             LastRoundPlace = 0;
         }
+        
     }
+    List<Player> playerList;
 
-
-
-void Start()
+    void Start()
     {
+        currentTopCard = 0;
+
+        deckManager = GetComponent<DeckManager>();
+        gameManager = GetComponent<GameManager>();
+        playerList = new List<Player>();        
+
         Player p1 = new Player(1, "alex");
         Player p2 = new Player(2, "bard");
         Player p3 = new Player(3, "carian");
         Player p4 = new Player(4, "dublo");
+        playerList.Add(p1);
+        playerList.Add(p2);
+        playerList.Add(p3);
+        playerList.Add(p4);
 
-        AnnounceTurn(p1.Username);
+        StartGame(p1);
     }
 
-    // Update is called once per frame
-    void Update()
+    public void StartGame(Player p1)
     {
-        
+        //el aktif gözükecek
+        StartTurn(p1);
     }
+
+    public void StartTurn(Player player)
+    {
+        AnnounceTurn(player.Username);
+        deckManager.OrganizeHand(currentTopCard);
+    }
+
+    void StartNewTurn()
+    {
+        currentTopCard = 0;
+        turnPlayStyle = 0;
+        StartTurn(playerList[0]);
+        gameManager.CleanCardsOnTable();
+        Debug.Log("new turn started!");
+    }
+
+    void IncrementTurnCount()
+    {
+        turnCount++;
+        if(turnCount == 4) //4 turns have been played
+        {
+            turnCount = 0;
+            StartNewTurn();
+        }
+        else
+        {
+            currentPlayerNo++;
+            currentPlayerNo = currentPlayerNo % 4;
+            StartTurn(playerList[currentPlayerNo]);
+        }
+    }
+
+    public void SkipTurn()
+    {
+        IncrementTurnCount();
+    }
+
+    public void PlayTurn(GameManager.TurnInfo turnInfo)
+    {
+        currentTopCard = turnInfo.CurrentTopCard;
+        turnPlayStyle = turnInfo.CurrentPlayStyle;
+        Debug.Log("current top card:"+  currentTopCard +"current play style: " + turnPlayStyle );
+        if (turnInfo.IsReversed) gameIsReversed = !gameIsReversed;
+        IncrementTurnCount();
+    }
+
+
+
+
+
     public void AnnounceTurn(string playerUsername)
     {
         turnText.text =  playerUsername + "'s turn!";
@@ -70,6 +137,8 @@ void Start()
         // Optional: add a callback after the animation is done
         sequence.OnComplete(() =>
         {
+            turnText.rectTransform.anchoredPosition = new Vector2(-Screen.width, turnText.rectTransform.anchoredPosition.y);
+
             // Code to execute after the animation is complete, if any
         });
     }

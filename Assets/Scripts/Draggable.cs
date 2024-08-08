@@ -10,7 +10,9 @@ public class Draggable : MonoBehaviour
 
 
     private float hoverSize = 1.2f;
-    private float hoverDuration = 0.3f;
+    private float hoverDuration = 0.6f;
+
+    private int initSortOrder = 0;
 
 
     private void Start()
@@ -25,11 +27,18 @@ public class Draggable : MonoBehaviour
 
     void OnMouseOver()
     {
-       if (getCardIsActive()) transform.DOScale(ogSize * hoverSize, hoverDuration);
+        if (getCardIsActive())
+        {
+            transform.DOScale(ogSize * hoverSize, hoverDuration);
+        }
     }
 
     void OnMouseExit()
     {
-        if (getCardIsActive()) transform.DOScale(ogSize, hoverDuration);
+        if (getCardIsActive())
+        {
+            transform.DOScale(ogSize, hoverDuration);
+        }
+          
     }
 }

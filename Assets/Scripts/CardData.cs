@@ -4,10 +4,8 @@ using UnityEngine;
 
 public class CardData : MonoBehaviour
 {
-    [SerializeField]
-    private string cardSuit;
-    [SerializeField]
-    private string cardRank;
+    public string cardSuit { get;  set; }
+    public int cardRank { get;  set; }
 
     private bool isActive = true;
 
@@ -20,26 +18,6 @@ public class CardData : MonoBehaviour
     {
         return isActive;
     }
-
-    public void setCardSuit(string cardSuit)
-    {
-        this.cardSuit = cardSuit;
-    }
-    public void setCardRank(string cardRank)
-    {
-        this.cardRank = cardRank;
-    }
-    public string getCardSuit()
-    {
-        return this.cardSuit;
-    }
-    public string getCardRank()
-    {
-        return this.cardRank;
-    }
-
-    
-
     public void printCardData()
     {
         Debug.Log(this.cardRank + " of " + this.cardSuit);
