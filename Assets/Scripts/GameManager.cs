@@ -1,7 +1,10 @@
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Threading.Tasks;
 using TMPro;
+using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.SocialPlatforms.Impl;
@@ -16,15 +19,19 @@ public class GameManager : MonoBehaviour
     Vector2 cardOriginPos = new Vector2();
     public float moveDuration = 0.4f;
 
+    bool cardsHaveMoved = false;
+
     TurnManager turnManager;
     public List<GameObject> selectedCards;
     int i = 1;
+    int selectedRanks = 0;
 
     int topCardRank = 0;
+    int curStyle = -1;
 
     List<GameObject> cardsOnTable;
 
-    public class TurnInfo
+    public struct TurnInfo
     {
         public int CurrentTopCard { get; private set; }
         public int CurrentPlayStyle { get; private set; }
@@ -47,7 +54,7 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        if (selectedCards.Count > 0)
+        if (selectedCards.Count == curStyle || (turnManager.isFirstTurn() && selectedCards.Count > 0))
         {
             playButton.interactable = true;
         }
@@ -58,9 +65,10 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void CleanCardsOnTable()
+    public async void CleanCardsOnTable()
     {
-        foreach( GameObject card in cardsOnTable)
+        
+        foreach (GameObject card in cardsOnTable)
         {
 
             Vector3 screenRight = new Vector3(Screen.width, Screen.height / 2, 0);
@@ -74,24 +82,27 @@ public class GameManager : MonoBehaviour
 
     public void checkNewCard(GameObject newCard)
     {
-        if(selectedCards.Contains(newCard))
+  
+
+        if (selectedCards.Contains(newCard))
         {
             removeFromSelectedCards(newCard);
         }
         else
         {
             if (selectedCards.Count == 0)
-            {
-                if (newCard.GetComponent<CardData>().cardRank.ToString() != "Joker")
+            {        
+                addToSelectedCards(newCard);
+                if(newCard.GetComponent<CardData>().cardRank != 16)
                 {
-                    addToSelectedCards(newCard);
+                    selectedRanks = newCard.GetComponent<CardData>().cardRank;
                 }
             }
             else
             {
 
-                if (selectedCards[0].GetComponent<CardData>().cardRank == newCard.GetComponent<CardData>().cardRank ||
-                    newCard.GetComponent<CardData>().cardRank.ToString() == "Joker")
+                if (selectedRanks == newCard.GetComponent<CardData>().cardRank ||
+                    newCard.GetComponent<CardData>().cardRank == 16)
                 {
                     addToSelectedCards(newCard);
                 }
@@ -108,26 +119,56 @@ public class GameManager : MonoBehaviour
         gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y - 0.5f), moveDuration).SetEase(Ease.InOutQuad);
         selectedCards.Remove(gameObject);
     }
-    public void playSelectedCards()
+    public void  playSelectedCards()
     {
-        int curStyle = selectedCards.Count;
+
+        curStyle = selectedCards.Count;
         bool isReversed = (curStyle == 4);
         
         foreach (GameObject selectedCard in selectedCards)
         {
             i++;
             float randomRotation = Random.Range(-10f, 10f); // Adjust the range as needed
-            selectedCard.transform.DORotate(new Vector3(0, 0, randomRotation), moveDuration).SetEase(Ease.InOutQuad);
-            selectedCard.transform.DOMove(cardOriginPos, moveDuration).SetEase(Ease.InOutQuad);
             selectedCard.GetComponentInChildren<Renderer>().sortingOrder = 20 + i;
             selectedCard.GetComponent<CardData>().disableCard();
             cardsOnTable.Add(selectedCard);
+            selectedCard.transform.DORotate(new Vector3(0, 0, randomRotation), moveDuration).SetEase(Ease.InOutQuad);
+            selectedCard.transform.DOMove(cardOriginPos, moveDuration)
+                .SetEase(Ease.InOutQuad)
+                .OnComplete(() =>
+                {
+                });
         }
-
         turnManager.PlayTurn(new TurnInfo(selectedCards[0].gameObject.GetComponent<CardData>().cardRank, curStyle, isReversed));
-
         selectedCards.Clear();
+    }
 
+    public void playOtherPlayerCards(List<DeckManager.Card> otherCards, int id)
+    {
+        foreach (DeckManager.Card card in otherCards)
+        {
+            /*
+            //INSTANTIATE
+            cardsOnTable.Add(selectedCard);
+            selectedCard.transform.DORotate(new Vector3(0, 0, randomRotation), moveDuration).SetEase(Ease.InOutQuad);
+            selectedCard.transform.DOMove(cardOriginPos, moveDuration)
+                .SetEase(Ease.InOutQuad)
+                .OnComplete(() =>
+                {
+                });
+            */
+        }
+    }
+
+
+    public void StartHost()
+    {
+        NetworkManager.Singleton.StartHost();
+    }
+
+    public void StartClient()
+    {
+        NetworkManager.Singleton.StartClient();
     }
 
 }

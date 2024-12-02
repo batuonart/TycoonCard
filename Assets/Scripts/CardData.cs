@@ -4,7 +4,10 @@ using UnityEngine;
 
 public class CardData : MonoBehaviour
 {
+
+    [SerializeField]
     public string cardSuit { get;  set; }
+    [SerializeField]
     public int cardRank { get;  set; }
 
     private bool isActive = true;

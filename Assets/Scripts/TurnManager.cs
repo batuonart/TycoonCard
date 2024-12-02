@@ -6,12 +6,13 @@ using DG.Tweening;
 using static DeckManager.Card;
 using UnityEngine.Events;
 using System.Collections.Generic;
+using Unity.Netcode;
 
 
-public class TurnManager : MonoBehaviour
+public class TurnManager : NetworkBehaviour
 {
     int currentPlayerNo = 0;
-    int turnCount = 0;
+    public int turnCount  { get; private set; }
     int turnPlayStyle = 0;
     public int currentTopCard { get; private set; }
     bool gameIsReversed = false;
@@ -21,6 +22,8 @@ public class TurnManager : MonoBehaviour
     
     public TextMeshProUGUI turnText;
     public UnityEvent newTurnEvent;
+
+    NetworkPlayerChecker nw;
 
     public class Player
     {
@@ -48,14 +51,16 @@ public class TurnManager : MonoBehaviour
         gameManager = GetComponent<GameManager>();
         playerList = new List<Player>();        
 
-        Player p1 = new Player(1, "alex");
-        Player p2 = new Player(2, "bard");
-        Player p3 = new Player(3, "carian");
-        Player p4 = new Player(4, "dublo");
+        Player p1 = new Player(1, "a");
+        Player p2 = new Player(2, "b");
+        Player p3 = new Player(3, "c");
+        Player p4 = new Player(4, "d");
         playerList.Add(p1);
         playerList.Add(p2);
         playerList.Add(p3);
         playerList.Add(p4);
+
+        nw = GetComponent<NetworkPlayerChecker>();
 
         StartGame(p1);
     }
@@ -69,7 +74,7 @@ public class TurnManager : MonoBehaviour
     public void StartTurn(Player player)
     {
         AnnounceTurn(player.Username);
-        deckManager.OrganizeHand(currentTopCard);
+        //deckManager.OrganizeHand(currentTopCard);
     }
 
     void StartNewTurn()
@@ -86,14 +91,15 @@ public class TurnManager : MonoBehaviour
         turnCount++;
         if(turnCount == 4) //4 turns have been played
         {
+
             turnCount = 0;
-            StartNewTurn();
+            //StartNewTurn();
         }
         else
         {
             currentPlayerNo++;
             currentPlayerNo = currentPlayerNo % 4;
-            StartTurn(playerList[currentPlayerNo]);
+           // StartTurn(playerList[currentPlayerNo]);
         }
     }
 
@@ -104,14 +110,37 @@ public class TurnManager : MonoBehaviour
 
     public void PlayTurn(GameManager.TurnInfo turnInfo)
     {
-        currentTopCard = turnInfo.CurrentTopCard;
-        turnPlayStyle = turnInfo.CurrentPlayStyle;
-        Debug.Log("current top card:"+  currentTopCard +"current play style: " + turnPlayStyle );
+
+        Debug.Log("current top card:"+ turnInfo.CurrentTopCard + "current play style: " + turnInfo.CurrentPlayStyle);
         if (turnInfo.IsReversed) gameIsReversed = !gameIsReversed;
         IncrementTurnCount();
+        var clientRpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new List<ulong> { nw.playerOrder[currentPlayerNo] }
+            }
+        };
+        // Notify the specific client
+        NotifyTurnClientRpc(turnInfo.CurrentTopCard, turnInfo.CurrentPlayStyle, turnInfo.IsReversed, clientRpcParams);
     }
 
 
+    [ClientRpc]
+    private void NotifyTurnClientRpc( int top, int style, bool reverse , ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log("It's" + clientRpcParams.ToString() + " turn!");
+        // Code for handling turn notification on the targeted client
+    }
+
+    public bool isFirstTurn()
+    {
+        if(turnCount == 0)
+        {
+            return true;
+        }
+        return false;
+    }
 
 
 

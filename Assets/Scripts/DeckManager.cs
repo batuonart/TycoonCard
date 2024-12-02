@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections.LowLevel.Unsafe;
-using Unity.VisualScripting;
+using Unity.Netcode;
+using Unity.VisualScripting;    
 using UnityEngine;
+using UnityEngine.UI;
 using static DeckManager;
 using static DeckManager.Card;
 
@@ -14,45 +16,30 @@ public class DeckManager : MonoBehaviour
 
     public GameObject cardPrefab;
     public Sprite[] cardFaces;
+    readonly string[] suitList = { "Clubs", "Diamonds", "Spades", "Hearts" };
     public Sprite jokerSprite;
   
     private static readonly System.Random rng = new System.Random();
-    public class Card
+    public class Card : INetworkSerializable
     {
-        public enum Suit
-        {
-            Clubs,
-            Diamonds,
-            Hearts,
-            Spades
-        }
-        public enum Rank
-        {
-            Three = 3,
-            Four,
-            Five,
-            Six,
-            Seven,
-            Eight,
-            Nine,
-            Ten,
-            Jack,
-            Queen,
-            King,
-            Ace,
-            Two,
-            Joker
-            
-        }
-        public Suit CardSuit { get; private set; }
-        public Rank CardRank { get; private set; }
-        public Sprite CardArt { get; private set; }
+        public string Suit;
+        public int Rank; // 11 J, 12 Q, 13 K, 14 A, 15 "2", 16 Joker
+        public int SpriteId;
 
-        public Card(Suit suit, Rank rank, Sprite art)
+        public Card(string suit, int rank, int spriteId)
         {
-            CardSuit = suit;
-            CardRank = rank;
-            this.CardArt = art;
+            Suit = suit;
+            Rank = rank;
+            SpriteId = spriteId;
+        }
+
+        public Card() { }
+
+        public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+        {
+            serializer.SerializeValue(ref Suit);
+            serializer.SerializeValue(ref Rank);
+            serializer.SerializeValue(ref SpriteId);
         }
 
 
@@ -61,7 +48,7 @@ public class DeckManager : MonoBehaviour
 
     List<Card> currentDeck;
     List<GameObject> handAsObjects;
-    List<List<Card>> playerHands;
+    public List<List<Card>> playerHands;
 
     public GameObject handPivot;
 
@@ -70,12 +57,10 @@ public class DeckManager : MonoBehaviour
     void Start()
     {
         List<GameObject> currentHandAsObjects = new List<GameObject>();
-        currentDeck = GenerateDeck();
-        Shuffle(currentDeck);
-        SplitHands();
-        DisplayHand(0);
+       // currentDeck = GenerateDeck();
+        //Shuffle(currentDeck);
+        //SplitHands();
     }
-
 
     public void GrayLowerCards(int topValue)
     {
@@ -117,52 +102,63 @@ public class DeckManager : MonoBehaviour
     }
 
 
+    public List<List<Card>> HandlePlayerCards()
+    {
+        currentDeck = GenerateDeck();
+        Shuffle(currentDeck);
+        var splitDeck = SplitHands();
+        return splitDeck;
+    }
 
-    void DisplayHand(int playerNo)
+    public void DisplayHand(List<Card> playerCards)
     {
         handAsObjects = new List<GameObject>();
-        var newHand = playerHands[playerNo];
-        newHand.Sort((card1, card2) => card1.CardRank.CompareTo(card2.CardRank));
+        var newHand = playerCards;
+        newHand.Sort((card1, card2) => card1.Rank.CompareTo(card2.Rank));
+        int i = 0;
         float offSet = 0f;
         foreach (var card in newHand)
         {
             
             GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (offSet * 1.2f), handPivot.transform.position.y), Quaternion.identity);
-            newCard.GetComponent<CardData>().cardSuit = card.CardSuit.ToString();
-            newCard.GetComponent<CardData>().cardRank = (int)card.CardRank;
-            newCard.GetComponentInChildren<SpriteRenderer>().sprite = card.CardArt;
+            newCard.GetComponent<CardData>().cardSuit = card.Suit;
+            newCard.GetComponent<CardData>().cardRank = card.Rank;
+            if(card.Suit.Equals("Joker"))
+            {
+                newCard.GetComponentInChildren<SpriteRenderer>().sprite = jokerSprite;
+            }
+            else
+            {
+                newCard.GetComponentInChildren<SpriteRenderer>().sprite = cardFaces[card.SpriteId];
+            }
             newCard.GetComponentInChildren<SpriteRenderer>().sortingOrder = (int)offSet;
             offSet++;
-            handAsObjects.Add(newCard);  
-
+            handAsObjects.Add(newCard);
+            i++;
         }
     }
 
-    List<Card> GenerateDeck()
+    public  List<Card> GenerateDeck()
     {
         List<Card> deck = new List<Card>();
-        int i = 0;
+        int spriteId= 0;
 
-        foreach (Rank rank in Enum.GetValues(typeof(Rank)))
+        for (int rank = 0; rank < 13; rank++)
         {
-            foreach (Suit suit in Enum.GetValues(typeof(Suit)))
+            foreach (string suit in suitList)
             {
-                if (rank != Rank.Joker)
-                {
-                    deck.Add(new Card(suit, rank, cardFaces[i]));
-                    i++;
-                }          
+                deck.Add(new Card(suit, rank, spriteId));
+                spriteId++;
             }
         }
-
-        deck.Add(new Card(Suit.Diamonds, Rank.Joker, jokerSprite));
-        deck.Add(new Card(Suit.Diamonds, Rank.Joker, jokerSprite));
-
+        //TODO: add jokersprite
+        deck.Add(new Card("Joker", 13, 0));
+        deck.Add(new Card("Joker", 13, 0));
 
         return deck;
     }
 
-    void SplitHands()
+    public  List<List<Card>> SplitHands()
     {
          playerHands = new List<List<Card>> {
             currentDeck.GetRange(0, 13),
@@ -176,6 +172,8 @@ public class DeckManager : MonoBehaviour
 
         giveExtraCardsTo++;
         giveExtraCardsTo = giveExtraCardsTo % 4;
+
+        return playerHands;
     }
 
     public static void Shuffle<T>(List<T> list)
