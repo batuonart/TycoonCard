@@ -12,23 +12,31 @@ public class NetworkPlayerChecker : NetworkBehaviour
 
     private PlayerNetwork[] players; // All players in the game
 
-    public List<ulong> playerOrder = new List<ulong>();
+    public List<ulong> playerIds = new List<ulong>();
 
     public event Action OnHandReady;
 
     int maxPlayers = 2;
+
+    int currentPlayerNo = 0;
+
+    private NetworkVariable<int> currentTopValue = new NetworkVariable<int>(0);
+    public int CurrentTopValue => currentTopValue.Value;
 
 
 
 
     DeckManager deckManager = new DeckManager();
     int connectedPlayers = 0;
+    HandManager handManager;
+    GameManager gameManager;
 
 
-
-    private void Start()
+    public override void OnNetworkSpawn()
     {
-        Debug.Log("in Start");
+        gameManager = GetComponent<GameManager>();
+        handManager = FindObjectOfType<HandManager>();
+        Debug.Log("Manager spawned");
        var  playerOrder = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
@@ -46,7 +54,7 @@ public class NetworkPlayerChecker : NetworkBehaviour
         {
             Debug.Log("Client connected with id: " + clientId);
         }
-        playerOrder.Add(clientId);
+        playerIds.Add(clientId);
 
         if (connectedPlayers == maxPlayers && NetworkManager.Singleton.IsHost)
         {
@@ -59,7 +67,7 @@ public class NetworkPlayerChecker : NetworkBehaviour
     private void OnClientDisconnected(ulong clientId)
     {
         connectedPlayers--;
-        playerOrder.Remove(clientId);
+        playerIds.Remove(clientId);
         Debug.Log("Client disconnected: " + clientId);
     }
 
@@ -67,22 +75,30 @@ public class NetworkPlayerChecker : NetworkBehaviour
     {
         players = FindObjectsOfType<PlayerNetwork>();
 
-        playerDecks = deckManager.HandlePlayerCards();
+        playerDecks = deckManager.HandlePlayerCards();  
         Debug.Log("Decks created");
 
         for (int i = 0; i < maxPlayers; i++)
         {
-            // Convert List<Card> to Card[]
             Card[] playerDeckArray = playerDecks[i].ToArray();
-
-            // Assign deck on the server for reference
-
-            // Send each player's deck to them specifically
             SendDeckToClientRpc(playerDeckArray, players[i].OwnerClientId);
         }
+
+        NextTurn();
     }
 
-    // ClientRpc to notify each client of their deck, using array
+    void NextTurn()
+    {
+        ClientRpcParams clientRpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[] { playerIds[currentPlayerNo] }
+            }
+        };
+        StartTurnClientRpc();
+    }
+
     [ClientRpc]
     private void SendDeckToClientRpc(Card[] deck, ulong clientId, ClientRpcParams clientRpcParams = default)
     {
@@ -93,21 +109,41 @@ public class NetworkPlayerChecker : NetworkBehaviour
         }
     }
 
+    [ClientRpc]
+    private void StartTurnClientRpc(ClientRpcParams clientRpcParams = default)
+    {
+        
+        PlayerNetwork player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
+        player.StartTurn();
+        
+    }
 
-    void FreezeGame()
+    [ServerRpc(RequireOwnership = false)]
+    public void EndTurnServerRPc(Card[] cards, ServerRpcParams rpcParams = default)
     {
-        if (Time.timeScale != 0)
-        {
-            Time.timeScale = 0;
-            Debug.Log("Game is frozen. Waiting for players...");
-        }
+        var clientId = rpcParams.Receive.SenderClientId;
+        currentPlayerNo++;
+        Debug.Log(currentPlayerNo + "'s turn");
+
+        currentTopValue.Value = cards[0].Rank;
+
+        Debug.Log("Top card: " + cards[0].Rank + " in style: " + cards.Length);
+
+
+        ShowPlayAnimationClientRpc(cards, clientId);
+
+        if (currentPlayerNo == maxPlayers) currentPlayerNo = 0;
+        NextTurn();
     }
-    void ResumeGame()
+
+    [ClientRpc]
+    public void ShowPlayAnimationClientRpc(Card[] cards, ulong playerWhoPlayed)
     {
-        if (Time.timeScale == 0)
-        {
-            Time.timeScale = 1;
-            Debug.Log("All players connected. Resuming the game...");
-        }
+        if (NetworkManager.Singleton.LocalClientId == playerWhoPlayed)
+            return;
+
+        Debug.Log("anim called from " + playerWhoPlayed);
+        handManager.PlayTurnWith(cards);
     }
+
 }

@@ -12,21 +12,18 @@ using static GameManager;
 public class PlayerNetwork : NetworkBehaviour
 {
 
-    DeckManager deckManager;
+    HandManager handManager;
     public NetworkPlayerChecker checker;
-    public List<Card> playerCards;
-     Card[] playerCardsAsArray;
-    public List<GameObject> selectedCards;
-    int selectedRanks = 0;
-        Vector2 cardOriginPos = new Vector2();
-    public float moveDuration = 0.4f;
+    public List<Card> playerCards = new List<Card>();
+    Card[] playerCardsAsArray;
 
+    bool isMyTurn = false;
 
-
-    void Start()
+    public override void OnNetworkSpawn()
     {
+        handManager = GameObject.FindGameObjectWithTag("Hand").GetComponent<HandManager>();
+        checker = GameObject.FindGameObjectWithTag("GameController").GetComponent<NetworkPlayerChecker>();
 
-        playerCards = new List<Card>();
     }
 
     public void ReceiveDeck(Card[] deck)
@@ -35,12 +32,26 @@ public class PlayerNetwork : NetworkBehaviour
         {
             playerCardsAsArray = deck;
             playerCards = playerCardsAsArray.ToList<Card>();
-            deckManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<DeckManager>();
-            deckManager.DisplayHand(playerCards);
+            handManager.DisplayHand(playerCards);
         }
     }
 
+    public void StartTurn()
+    {
+        isMyTurn = true;
+        int topCard = checker.CurrentTopValue;
+        handManager.DarkenCards(topCard);
+    }
 
+    public void EndTurn(Card[] playedCards)
+    {
+        handManager.DarkenCards();
+        checker.EndTurnServerRPc(playedCards);
+        isMyTurn = false;
+    }
+
+
+    
 
 
 

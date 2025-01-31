@@ -1,4 +1,5 @@
 using DG.Tweening;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -19,8 +20,6 @@ public class GameManager : MonoBehaviour
     Vector2 cardOriginPos = new Vector2();
     public float moveDuration = 0.4f;
 
-    bool cardsHaveMoved = false;
-
     TurnManager turnManager;
     public List<GameObject> selectedCards;
     int i = 1;
@@ -28,6 +27,8 @@ public class GameManager : MonoBehaviour
 
     int topCardRank = 0;
     int curStyle = -1;
+
+    int spriteOrder = 0;
 
     List<GameObject> cardsOnTable;
 
@@ -65,7 +66,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public async void CleanCardsOnTable()
+    public  void CleanCardsOnTable()
     {
         
         foreach (GameObject card in cardsOnTable)
@@ -82,8 +83,7 @@ public class GameManager : MonoBehaviour
 
     public void checkNewCard(GameObject newCard)
     {
-  
-
+        var newCardData = newCard.GetComponent<CardData>();
         if (selectedCards.Contains(newCard))
         {
             removeFromSelectedCards(newCard);
@@ -93,22 +93,22 @@ public class GameManager : MonoBehaviour
             if (selectedCards.Count == 0)
             {        
                 addToSelectedCards(newCard);
-                if(newCard.GetComponent<CardData>().cardRank != 16)
+                if(!newCardData.isJoker)
                 {
-                    selectedRanks = newCard.GetComponent<CardData>().cardRank;
+                    selectedRanks = newCardData.cardRank;
                 }
             }
             else
             {
 
-                if (selectedRanks == newCard.GetComponent<CardData>().cardRank ||
-                    newCard.GetComponent<CardData>().cardRank == 16)
+                if (selectedRanks == newCardData.cardRank || newCardData.isJoker)
                 {
                     addToSelectedCards(newCard);
                 }
             }
         }
     }
+
     public void addToSelectedCards(GameObject gameObject)
     {
         gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y + 0.5f) , moveDuration).SetEase(Ease.InOutQuad);
@@ -119,47 +119,52 @@ public class GameManager : MonoBehaviour
         gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y - 0.5f), moveDuration).SetEase(Ease.InOutQuad);
         selectedCards.Remove(gameObject);
     }
+
     public void  playSelectedCards()
     {
 
-        curStyle = selectedCards.Count;
-        bool isReversed = (curStyle == 4);
-        
+        var cardList = new List<Card>();
+        foreach (GameObject selectedCard in selectedCards)
+        {  
+            cardList.Add(selectedCard.GetComponent<CardData>().rawCard);
+        }
+
+        PlaySelectedCardsAsGO(selectedCards);
+
+        PlayerNetwork localPlayerNetwork = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
+        localPlayerNetwork.EndTurn(cardList.ToArray());
+    }
+
+    public void PlaySelectedCardsAsGO(List<GameObject> selectedCards)
+    {
+
         foreach (GameObject selectedCard in selectedCards)
         {
-            i++;
-            float randomRotation = Random.Range(-10f, 10f); // Adjust the range as needed
-            selectedCard.GetComponentInChildren<Renderer>().sortingOrder = 20 + i;
+            spriteOrder++;
+            selectedCard.GetComponentInChildren<Renderer>().sortingOrder = 20 + spriteOrder;
             selectedCard.GetComponent<CardData>().disableCard();
             cardsOnTable.Add(selectedCard);
-            selectedCard.transform.DORotate(new Vector3(0, 0, randomRotation), moveDuration).SetEase(Ease.InOutQuad);
+
+
+            selectedCard.transform.DORotate(new Vector3(0, 0, UnityEngine.Random.Range(-10f, 10f)), moveDuration).SetEase(Ease.InOutQuad);
             selectedCard.transform.DOMove(cardOriginPos, moveDuration)
                 .SetEase(Ease.InOutQuad)
                 .OnComplete(() =>
                 {
                 });
+
+
         }
-        turnManager.PlayTurn(new TurnInfo(selectedCards[0].gameObject.GetComponent<CardData>().cardRank, curStyle, isReversed));
         selectedCards.Clear();
     }
 
-    public void playOtherPlayerCards(List<DeckManager.Card> otherCards, int id)
-    {
-        foreach (DeckManager.Card card in otherCards)
-        {
-            /*
-            //INSTANTIATE
-            cardsOnTable.Add(selectedCard);
-            selectedCard.transform.DORotate(new Vector3(0, 0, randomRotation), moveDuration).SetEase(Ease.InOutQuad);
-            selectedCard.transform.DOMove(cardOriginPos, moveDuration)
-                .SetEase(Ease.InOutQuad)
-                .OnComplete(() =>
-                {
-                });
-            */
-        }
-    }
 
+    public void SkipTurn()
+    {
+        PlayerNetwork localPlayerNetwork = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
+
+        localPlayerNetwork.EndTurn(Array.Empty<Card>());
+    }
 
     public void StartHost()
     {

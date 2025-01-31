@@ -55,6 +55,6 @@ public class BotManager : MonoBehaviour
     {
         var botPlayedHand = new List<DeckManager.Card>();
         botPlayedHand = bots[id].PlayTurn(turnInfo);
-        gameManager.playOtherPlayerCards(botPlayedHand, id);
+       // gameManager.playOtherPlayerCards(botPlayedHand, id);
     }
 }

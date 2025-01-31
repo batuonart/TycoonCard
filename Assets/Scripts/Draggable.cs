@@ -1,4 +1,4 @@
-using System.Collections;
+    using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
@@ -9,8 +9,8 @@ public class Draggable : MonoBehaviour
     Vector2 ogSize;
 
 
-    private float hoverSize = 1.2f;
-    private float hoverDuration = 0.6f;
+    private float hoverSize = 1.3f;
+    private float hoverDuration = 0.3f;
 
     private int initSortOrder = 0;
 

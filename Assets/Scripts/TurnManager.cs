@@ -114,24 +114,8 @@ public class TurnManager : NetworkBehaviour
         Debug.Log("current top card:"+ turnInfo.CurrentTopCard + "current play style: " + turnInfo.CurrentPlayStyle);
         if (turnInfo.IsReversed) gameIsReversed = !gameIsReversed;
         IncrementTurnCount();
-        var clientRpcParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = new List<ulong> { nw.playerOrder[currentPlayerNo] }
-            }
-        };
-        // Notify the specific client
-        NotifyTurnClientRpc(turnInfo.CurrentTopCard, turnInfo.CurrentPlayStyle, turnInfo.IsReversed, clientRpcParams);
     }
 
-
-    [ClientRpc]
-    private void NotifyTurnClientRpc( int top, int style, bool reverse , ClientRpcParams clientRpcParams = default)
-    {
-        Debug.Log("It's" + clientRpcParams.ToString() + " turn!");
-        // Code for handling turn notification on the targeted client
-    }
 
     public bool isFirstTurn()
     {

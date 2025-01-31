@@ -11,13 +11,9 @@ using static DeckManager.Card;
 
 public class DeckManager : MonoBehaviour
 {
-
-    int playerHand = 13;
-
-    public GameObject cardPrefab;
     public Sprite[] cardFaces;
-    readonly string[] suitList = { "Clubs", "Diamonds", "Spades", "Hearts" };
-    public Sprite jokerSprite;
+    readonly string[] suitList = { "Clubs", "Diamonds", "Hearts", "Spades" };
+
   
     private static readonly System.Random rng = new System.Random();
     public class Card : INetworkSerializable
@@ -47,60 +43,13 @@ public class DeckManager : MonoBehaviour
     }
 
     List<Card> currentDeck;
-    List<GameObject> handAsObjects;
     public List<List<Card>> playerHands;
-
-    public GameObject handPivot;
-
     int giveExtraCardsTo = 0;
 
     void Start()
     {
         List<GameObject> currentHandAsObjects = new List<GameObject>();
-       // currentDeck = GenerateDeck();
-        //Shuffle(currentDeck);
-        //SplitHands();
     }
-
-    public void GrayLowerCards(int topValue)
-    {
-        foreach (var card in handAsObjects)
-        {   
-            if(card.GetComponent<CardData>().cardRank <= topValue)
-            {
-                Color originalColor = card.GetComponentInChildren<SpriteRenderer>().color;
-
-                // Calculate the grayscale value (average of R, G, and B components)
-                float grayValue = (originalColor.r + originalColor.g + originalColor.b) / 3f;
-
-                // Set the color to a gray tone with the same alpha value
-                card.GetComponentInChildren<SpriteRenderer>().color = new Color(grayValue, grayValue, grayValue, originalColor.a);
-            }
-        }
-    }
-    
-
-    public void OrganizeHand(int currentTopRank)
-    {
-        //darken
-
-        foreach(var card in handAsObjects)
-        {
-            SpriteRenderer spriteRenderer = card.GetComponentInChildren<SpriteRenderer>();
-
-            card.GetComponent<BoxCollider2D>().enabled = true;
-            spriteRenderer.color = Color.white;
-
-            if (card.GetComponent<CardData>().cardRank <= currentTopRank)
-            {
-                card.GetComponent<BoxCollider2D>().enabled = false;
-                spriteRenderer.color = new Color(spriteRenderer.color.r * 0.5f, spriteRenderer.color.g * 0.5f, spriteRenderer.color.b * 0.5f, spriteRenderer.color.a);
-            }
-        }
-        
-        //disable
-    }
-
 
     public List<List<Card>> HandlePlayerCards()
     {
@@ -110,40 +59,12 @@ public class DeckManager : MonoBehaviour
         return splitDeck;
     }
 
-    public void DisplayHand(List<Card> playerCards)
-    {
-        handAsObjects = new List<GameObject>();
-        var newHand = playerCards;
-        newHand.Sort((card1, card2) => card1.Rank.CompareTo(card2.Rank));
-        int i = 0;
-        float offSet = 0f;
-        foreach (var card in newHand)
-        {
-            
-            GameObject newCard = Instantiate(cardPrefab, new Vector2(handPivot.transform.position.x + (offSet * 1.2f), handPivot.transform.position.y), Quaternion.identity);
-            newCard.GetComponent<CardData>().cardSuit = card.Suit;
-            newCard.GetComponent<CardData>().cardRank = card.Rank;
-            if(card.Suit.Equals("Joker"))
-            {
-                newCard.GetComponentInChildren<SpriteRenderer>().sprite = jokerSprite;
-            }
-            else
-            {
-                newCard.GetComponentInChildren<SpriteRenderer>().sprite = cardFaces[card.SpriteId];
-            }
-            newCard.GetComponentInChildren<SpriteRenderer>().sortingOrder = (int)offSet;
-            offSet++;
-            handAsObjects.Add(newCard);
-            i++;
-        }
-    }
-
     public  List<Card> GenerateDeck()
     {
         List<Card> deck = new List<Card>();
         int spriteId= 0;
 
-        for (int rank = 0; rank < 13; rank++)
+        for (int rank = 3; rank < 16; rank++)
         {
             foreach (string suit in suitList)
             {
@@ -152,8 +73,8 @@ public class DeckManager : MonoBehaviour
             }
         }
         //TODO: add jokersprite
-        deck.Add(new Card("Joker", 13, 0));
-        deck.Add(new Card("Joker", 13, 0));
+        deck.Add(new Card("Joker", 17, 0));
+        deck.Add(new Card("Joker", 17, 0));
 
         return deck;
     }
