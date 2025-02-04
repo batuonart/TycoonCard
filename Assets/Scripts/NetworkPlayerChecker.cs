@@ -18,25 +18,29 @@ public class NetworkPlayerChecker : NetworkBehaviour
 
     int maxPlayers = 2;
 
-    int currentPlayerNo = 0;
+    int currentTopValue = 0;
+    int currentPlayStyle = 0;
 
-    private NetworkVariable<int> currentTopValue = new NetworkVariable<int>(0);
-    public int CurrentTopValue => currentTopValue.Value;
+    bool canPlay = false;
+
+    public event Action<bool, int, int> OnStartTurn;
+
+    public bool CanPlay => canPlay;
+
+    int currentPlayerNo = -1;
 
 
-
-
-    DeckManager deckManager = new DeckManager();
+    DeckManager deckManager;
     int connectedPlayers = 0;
     HandManager handManager;
-    GameManager gameManager;
+    
 
 
     public override void OnNetworkSpawn()
     {
-        gameManager = GetComponent<GameManager>();
+        Debug.Log("spawned");
+        deckManager = FindObjectOfType<DeckManager>();
         handManager = FindObjectOfType<HandManager>();
-        Debug.Log("Manager spawned");
        var  playerOrder = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
@@ -87,17 +91,6 @@ public class NetworkPlayerChecker : NetworkBehaviour
         NextTurn();
     }
 
-    void NextTurn()
-    {
-        ClientRpcParams clientRpcParams = new ClientRpcParams
-        {
-            Send = new ClientRpcSendParams
-            {
-                TargetClientIds = new ulong[] { playerIds[currentPlayerNo] }
-            }
-        };
-        StartTurnClientRpc();
-    }
 
     [ClientRpc]
     private void SendDeckToClientRpc(Card[] deck, ulong clientId, ClientRpcParams clientRpcParams = default)
@@ -109,31 +102,45 @@ public class NetworkPlayerChecker : NetworkBehaviour
         }
     }
 
-    [ClientRpc]
-    private void StartTurnClientRpc(ClientRpcParams clientRpcParams = default)
-    {
-        
-        PlayerNetwork player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
-        player.StartTurn();
-        
-    }
-
+  
     [ServerRpc(RequireOwnership = false)]
-    public void EndTurnServerRPc(Card[] cards, ServerRpcParams rpcParams = default)
+    public void EndTurnServerRpc(Card[] cards, ServerRpcParams rpcParams = default)
     {
+        Debug.Log(currentPlayerNo + "'s turn ended from HOST/SERVER");
+
         var clientId = rpcParams.Receive.SenderClientId;
-        currentPlayerNo++;
-        Debug.Log(currentPlayerNo + "'s turn");
-
-        currentTopValue.Value = cards[0].Rank;
-
-        Debug.Log("Top card: " + cards[0].Rank + " in style: " + cards.Length);
-
+        currentTopValue = cards[0].Rank;
+        currentPlayStyle = cards.Length;
 
         ShowPlayAnimationClientRpc(cards, clientId);
-
-        if (currentPlayerNo == maxPlayers) currentPlayerNo = 0;
         NextTurn();
+    }
+    void NextTurn()
+    {
+        currentPlayerNo++;
+
+        if(currentPlayerNo == maxPlayers) { currentPlayerNo = 0; }
+        ClientRpcParams clientRpcParams = new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams
+            {
+                TargetClientIds = new ulong[] { playerIds[currentPlayerNo] }
+            }
+        };
+        StartTurnClientRpc(currentTopValue, currentPlayStyle, clientRpcParams);
+    }
+
+    [ClientRpc]
+    private void StartTurnClientRpc(int  topVal, int playStyle, ClientRpcParams clientRpcParams = default)
+    {
+        Debug.Log(currentPlayerNo + "'s turn started");
+        PlayerNetwork player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
+        EnableCanPlay();
+        player.StartTurn();
+
+        canPlay = true;
+        Debug.Log("canPlay enabled.");
+        OnStartTurn?.Invoke(canPlay, topVal, playStyle);
     }
 
     [ClientRpc]
@@ -145,5 +152,18 @@ public class NetworkPlayerChecker : NetworkBehaviour
         Debug.Log("anim called from " + playerWhoPlayed);
         handManager.PlayTurnWith(cards);
     }
+
+    public void EnableCanPlay()
+    {
+
+    }
+
+    public void DisableCanPlay()
+    {
+        canPlay = false;
+        Debug.Log("canPlay disabled.");
+        OnStartTurn?.Invoke(canPlay, currentTopValue, currentPlayStyle);
+    }
+
 
 }

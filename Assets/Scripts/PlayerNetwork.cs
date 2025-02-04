@@ -17,7 +17,6 @@ public class PlayerNetwork : NetworkBehaviour
     public List<Card> playerCards = new List<Card>();
     Card[] playerCardsAsArray;
 
-    bool isMyTurn = false;
 
     public override void OnNetworkSpawn()
     {
@@ -31,27 +30,25 @@ public class PlayerNetwork : NetworkBehaviour
         if (IsOwner)
         {
             playerCardsAsArray = deck;
-            playerCards = playerCardsAsArray.ToList<Card>();
+            playerCards = playerCardsAsArray.ToList();
             handManager.DisplayHand(playerCards);
         }
     }
 
     public void StartTurn()
     {
-        isMyTurn = true;
-        int topCard = checker.CurrentTopValue;
-        handManager.DarkenCards(topCard);
+
     }
 
     public void EndTurn(Card[] playedCards)
     {
-        handManager.DarkenCards();
-        checker.EndTurnServerRPc(playedCards);
-        isMyTurn = false;
+        checker.DisableCanPlay();
+        checker.EndTurnServerRpc(playedCards);
     }
 
 
-    
+
+
 
 
 

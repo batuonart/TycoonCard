@@ -1793,6 +1793,7 @@ MonoBehaviour:
   - {fileID: 959274141}
   - {fileID: 585373065}
   gameManager: {fileID: 1256410887}
+  networkPlayerChecker: {fileID: 1256410891}
 --- !u!1 &580912370
 GameObject:
   m_ObjectHideFlags: 0
@@ -2932,6 +2933,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playButton: {fileID: 2013474106}
+  skipButton: {fileID: 1160039927}
   cardOriginObject: {fileID: 1282592701852520866}
   moveDuration: 0.4
   selectedCards: []
@@ -2948,9 +2950,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   turnText: {fileID: 733791280}
-  newTurnEvent:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &1256410889
 MonoBehaviour:
   m_ObjectHideFlags: 0

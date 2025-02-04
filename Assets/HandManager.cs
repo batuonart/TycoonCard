@@ -18,52 +18,41 @@ public class HandManager : MonoBehaviour
     public GameObject[] handPositions;
     public GameManager gameManager;
 
+    public NetworkPlayerChecker networkPlayerChecker;
+
     private void Start()
     {
+        var GMObject = GameObject.FindWithTag("GameController");
+        networkPlayerChecker = GMObject.GetComponent<NetworkPlayerChecker>();
+        gameManager = GMObject.GetComponent<GameManager>();
+        networkPlayerChecker.OnStartTurn += OnStartTurn;
     }
 
-
-    public void DarkenCards (int topValue = 100)
+    void OnStartTurn(bool canPlay, int topValue, int playStyle)
     {
+        
+        if (canPlay) 
+        { 
+            DarkenCards(topValue); 
+        }
+        else { 
+            DarkenCards();
+        }
 
+    }
+
+    public void DarkenCards (int minRank = 100)
+    {
         foreach (var card in cardsInHand)
         {
             card.GetComponentInChildren<SpriteRenderer>().color = new Color(1, 1, 1, 1);
-            if (card.GetComponent<CardData>().cardRank <= topValue)
+            if (card.GetComponent<CardData>().cardRank <= minRank)
             {                    
                 card.GetComponentInChildren<SpriteRenderer>().color = new Color(darkenFactor,darkenFactor,darkenFactor, 1); 
             }
         }
     }
 
-    public void DegrayCards()
-    {
-        foreach (var card in cardsInHand)
-        {
-            card.GetComponentInChildren<SpriteRenderer>().color = originalColor;
-        }
-    }
-
-    public void OrganizeHand(int currentTopRank)
-    {
-        //darken
-
-        foreach (var card in cardsInHand)
-        {
-            SpriteRenderer spriteRenderer = card.GetComponentInChildren<SpriteRenderer>();
-
-            card.GetComponent<BoxCollider2D>().enabled = true;
-            spriteRenderer.color = Color.white;
-
-            if (card.GetComponent<CardData>().cardRank <= currentTopRank)
-            {
-                card.GetComponent<BoxCollider2D>().enabled = false;
-                spriteRenderer.color = new Color(spriteRenderer.color.r * 0.5f, spriteRenderer.color.g * 0.5f, spriteRenderer.color.b * 0.5f, spriteRenderer.color.a);
-            }
-        }
-
-        //disable
-    }
     public void DisplayHand(List<Card> playerCards)
     {
         var newHand = playerCards;

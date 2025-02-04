@@ -15,6 +15,7 @@ using static DeckManager;
 public class GameManager : MonoBehaviour
 {
     public Button playButton;
+    public Button skipButton;
 
     public GameObject cardOriginObject;
     Vector2 cardOriginPos = new Vector2();
@@ -32,39 +33,25 @@ public class GameManager : MonoBehaviour
 
     List<GameObject> cardsOnTable;
 
-    public struct TurnInfo
-    {
-        public int CurrentTopCard { get; private set; }
-        public int CurrentPlayStyle { get; private set; }
-        public bool IsReversed { get; private set; }
+    NetworkPlayerChecker networkPlayerChecker;
 
-        public TurnInfo(int currentTopCard, int currentPlayStyle, bool isReversed)
-        {
-            CurrentTopCard = currentTopCard;
-            CurrentPlayStyle = currentPlayStyle;
-            IsReversed = isReversed;
-        }
-    }
 
     private void Start()
     {
-        cardsOnTable = new List<GameObject>(); // Initialize the list here
+        cardsOnTable = new List<GameObject>(); 
         turnManager = gameObject.GetComponent<TurnManager>();
         cardOriginPos = cardOriginObject.transform.position;
+
+        networkPlayerChecker = GetComponent<NetworkPlayerChecker>();
+        networkPlayerChecker.OnStartTurn += OnStartTurn;
     }
 
-    private void Update()
+    void OnStartTurn(bool canPlay, int topValue, int playStyle)
     {
-        if (selectedCards.Count == curStyle || (turnManager.isFirstTurn() && selectedCards.Count > 0))
-        {
-            playButton.interactable = true;
-        }
-        else
-        {
-            playButton.interactable = false;
-
-        }
+        playButton.interactable = canPlay;
+        skipButton.interactable = canPlay;
     }
+
 
     public  void CleanCardsOnTable()
     {
@@ -122,6 +109,8 @@ public class GameManager : MonoBehaviour
 
     public void  playSelectedCards()
     {
+        if(selectedCards.Count == 0)
+        { return; }
 
         var cardList = new List<Card>();
         foreach (GameObject selectedCard in selectedCards)
