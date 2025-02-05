@@ -19,17 +19,16 @@ public class GameManager : MonoBehaviour
 
     public GameObject cardOriginObject;
     Vector2 cardOriginPos = new Vector2();
-    public float moveDuration = 0.4f;
+    public float moveDuration = 0.2f;
 
-    TurnManager turnManager;
     public List<GameObject> selectedCards;
-    int i = 1;
     int selectedRanks = 0;
 
-    int topCardRank = 0;
-    int curStyle = -1;
+    int topVal = 0;
+    int playingStyle = -1;
 
     int spriteOrder = 0;
+
 
     List<GameObject> cardsOnTable;
 
@@ -39,17 +38,17 @@ public class GameManager : MonoBehaviour
     private void Start()
     {
         cardsOnTable = new List<GameObject>(); 
-        turnManager = gameObject.GetComponent<TurnManager>();
         cardOriginPos = cardOriginObject.transform.position;
 
         networkPlayerChecker = GetComponent<NetworkPlayerChecker>();
         networkPlayerChecker.OnStartTurn += OnStartTurn;
+        networkPlayerChecker.OnNewRound += CleanCardsOnTable;
     }
 
     void OnStartTurn(bool canPlay, int topValue, int playStyle)
     {
-        playButton.interactable = canPlay;
         skipButton.interactable = canPlay;
+        playingStyle = playStyle;
     }
 
 
@@ -88,29 +87,44 @@ public class GameManager : MonoBehaviour
             else
             {
 
-                if (selectedRanks == newCardData.cardRank || newCardData.isJoker)
+                if ((selectedRanks == newCardData.cardRank || newCardData.isJoker) && selectedCards.Count < playingStyle)
                 {
                     addToSelectedCards(newCard);
                 }
             }
         }
+
+        if(selectedCards.Count == playingStyle || playingStyle == 5) 
+        { 
+            playButton.interactable = true;
+        }
+        else
+        {
+            playButton.interactable = false;
+        }
     }
 
     public void addToSelectedCards(GameObject gameObject)
     {
-        gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y + 0.5f) , moveDuration).SetEase(Ease.InOutQuad);
+        
+        gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y + 0.5f), moveDuration).SetEase(Ease.InOutQuad);
         selectedCards.Add(gameObject);
+        
     }
     public void removeFromSelectedCards(GameObject gameObject)
     {
+        
         gameObject.transform.DOMove(new Vector3(gameObject.transform.position.x, gameObject.transform.position.y - 0.5f), moveDuration).SetEase(Ease.InOutQuad);
         selectedCards.Remove(gameObject);
+        
     }
 
     public void  playSelectedCards()
     {
         if(selectedCards.Count == 0)
         { return; }
+
+        playButton.interactable = false;
 
         var cardList = new List<Card>();
         foreach (GameObject selectedCard in selectedCards)
@@ -141,8 +155,6 @@ public class GameManager : MonoBehaviour
                 .OnComplete(() =>
                 {
                 });
-
-
         }
         selectedCards.Clear();
     }

@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.Playables;
 using static DeckManager;
 
 public class NetworkPlayerChecker : NetworkBehaviour
@@ -20,10 +21,14 @@ public class NetworkPlayerChecker : NetworkBehaviour
 
     int currentTopValue = 0;
     int currentPlayStyle = 0;
+    int lastPlayedPlayerId = -1;
 
     bool canPlay = false;
 
     public event Action<bool, int, int> OnStartTurn;
+
+    public event Action OnNewRound;
+
 
     public bool CanPlay => canPlay;
 
@@ -33,7 +38,6 @@ public class NetworkPlayerChecker : NetworkBehaviour
     DeckManager deckManager;
     int connectedPlayers = 0;
     HandManager handManager;
-    
 
 
     public override void OnNetworkSpawn()
@@ -44,6 +48,7 @@ public class NetworkPlayerChecker : NetworkBehaviour
        var  playerOrder = new List<ulong>(NetworkManager.Singleton.ConnectedClientsIds);
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnected;
+
 
     }
 
@@ -87,7 +92,7 @@ public class NetworkPlayerChecker : NetworkBehaviour
             Card[] playerDeckArray = playerDecks[i].ToArray();
             SendDeckToClientRpc(playerDeckArray, players[i].OwnerClientId);
         }
-
+        currentPlayStyle = 5;
         NextTurn();
     }
 
@@ -104,22 +109,41 @@ public class NetworkPlayerChecker : NetworkBehaviour
 
   
     [ServerRpc(RequireOwnership = false)]
-    public void EndTurnServerRpc(Card[] cards, ServerRpcParams rpcParams = default)
+    public void EndTurnServerRpc(Card[] playedCards, ServerRpcParams rpcParams = default)
     {
         Debug.Log(currentPlayerNo + "'s turn ended from HOST/SERVER");
 
-        var clientId = rpcParams.Receive.SenderClientId;
-        currentTopValue = cards[0].Rank;
-        currentPlayStyle = cards.Length;
+        if(playedCards.Length > 0)
+        {
+            var clientId = rpcParams.Receive.SenderClientId;
+            currentTopValue = playedCards[0].Rank;
+            currentPlayStyle = playedCards.Length;
+            ShowPlayAnimationClientRpc(playedCards, clientId);
 
-        ShowPlayAnimationClientRpc(cards, clientId);
+            lastPlayedPlayerId = currentPlayerNo;
+        }
+
+        else
+        {
+            Debug.Log(currentPlayerNo + "'s Turn skipped");
+            //TODO
+        }
+
         NextTurn();
     }
     void NextTurn()
     {
-        currentPlayerNo++;
+        currentPlayerNo = (currentPlayerNo + 1) % maxPlayers;
 
-        if(currentPlayerNo == maxPlayers) { currentPlayerNo = 0; }
+        if (lastPlayedPlayerId == currentPlayerNo)
+        {
+            //START NEW ROUND
+            StartNewRoundClientRpc();
+            currentTopValue = 0;
+            currentPlayStyle = 5;
+        }
+
+        // CONTİNUE ROUND
         ClientRpcParams clientRpcParams = new ClientRpcParams
         {
             Send = new ClientRpcSendParams
@@ -128,15 +152,13 @@ public class NetworkPlayerChecker : NetworkBehaviour
             }
         };
         StartTurnClientRpc(currentTopValue, currentPlayStyle, clientRpcParams);
+        
     }
 
     [ClientRpc]
     private void StartTurnClientRpc(int  topVal, int playStyle, ClientRpcParams clientRpcParams = default)
     {
         Debug.Log(currentPlayerNo + "'s turn started");
-        PlayerNetwork player = NetworkManager.Singleton.LocalClient.PlayerObject.GetComponent<PlayerNetwork>();
-        EnableCanPlay();
-        player.StartTurn();
 
         canPlay = true;
         Debug.Log("canPlay enabled.");
@@ -153,9 +175,11 @@ public class NetworkPlayerChecker : NetworkBehaviour
         handManager.PlayTurnWith(cards);
     }
 
-    public void EnableCanPlay()
+    [ClientRpc]
+    public void StartNewRoundClientRpc()
     {
-
+        Debug.Log("New round invoked from clients");
+        OnNewRound?.Invoke();
     }
 
     public void DisableCanPlay()

@@ -16,10 +16,6 @@ public class InputHandler : MonoBehaviour
         cam = Camera.main;
     }
 
-    public void OnPlayClick()
-    {
-
-    }
 
     public void OnClick(InputAction.CallbackContext context)
     {
@@ -27,9 +23,6 @@ public class InputHandler : MonoBehaviour
 
         var rayHit = Physics2D.GetRayIntersection(cam.ScreenPointToRay(Mouse.current.position.ReadValue()));
         if (!rayHit.collider) return;
-
-
-
 
         GameObject hitCard = rayHit.collider.gameObject;
 

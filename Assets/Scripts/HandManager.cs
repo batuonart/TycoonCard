@@ -26,6 +26,7 @@ public class HandManager : MonoBehaviour
         networkPlayerChecker = GMObject.GetComponent<NetworkPlayerChecker>();
         gameManager = GMObject.GetComponent<GameManager>();
         networkPlayerChecker.OnStartTurn += OnStartTurn;
+        networkPlayerChecker.OnNewRound += UnDarkenCards;
     }
 
     void OnStartTurn(bool canPlay, int topValue, int playStyle)
@@ -45,11 +46,17 @@ public class HandManager : MonoBehaviour
     {
         foreach (var card in cardsInHand)
         {
-            card.GetComponentInChildren<SpriteRenderer>().color = new Color(1, 1, 1, 1);
             if (card.GetComponent<CardData>().cardRank <= minRank)
             {                    
                 card.GetComponentInChildren<SpriteRenderer>().color = new Color(darkenFactor,darkenFactor,darkenFactor, 1); 
             }
+        }
+    }
+    public void UnDarkenCards ()
+    {
+        foreach (var card in cardsInHand)
+        {
+            //card.GetComponentInChildren<SpriteRenderer>().color = new Color(1, 1, 1, 1);
         }
     }
 
@@ -91,26 +98,24 @@ public class HandManager : MonoBehaviour
         foreach (var card in cards)
         {
             sortOrder++;
-            GameObject newCard = Instantiate(cardPrefab, handPositions[0].transform.position, Quaternion.identity, this.transform);
-            var newCardData = newCard.GetComponent<CardData>();
+            GameObject cardAsObject = Instantiate(cardPrefab, handPositions[0].transform.position, Quaternion.identity, this.transform);
+            var newCardData = cardAsObject.GetComponent<CardData>();
             newCardData.ConvertToCardData(card);
 
-            newCard.name = card.Rank.ToString() + " of " + card.Suit.ToString();
+            cardAsObject.name = card.Rank.ToString() + " of " + card.Suit.ToString();
 
             if (newCardData.isJoker)
             {
-                newCard.GetComponentInChildren<SpriteRenderer>().sprite = jokerSprite;
+                cardAsObject.GetComponentInChildren<SpriteRenderer>().sprite = jokerSprite;
             }
             else
             {
-                newCard.GetComponentInChildren<SpriteRenderer>().sprite = cardFaces[card.SpriteId];
+                cardAsObject.GetComponentInChildren<SpriteRenderer>().sprite = cardFaces[card.SpriteId];
             }
-
-            c.Add(newCard);
+            c.Add(cardAsObject);
 
         }
         gameManager.PlaySelectedCardsAsGO(c);
         c.Clear();
-
     }
 }

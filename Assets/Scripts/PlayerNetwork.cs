@@ -35,10 +35,6 @@ public class PlayerNetwork : NetworkBehaviour
         }
     }
 
-    public void StartTurn()
-    {
-
-    }
 
     public void EndTurn(Card[] playedCards)
     {
